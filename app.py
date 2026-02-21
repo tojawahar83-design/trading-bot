@@ -296,7 +296,7 @@ def monitor_trailing_sl(kite):
 
 
 # ------------------- Streamlit UI -------------------
-st.title("⚡ Nifty/BANKNIFTY Options Bot PRO")
+st.title("⚡ Nifty/BANKNIFTY Options J-Bot PRO")
 st.caption("Paper-mode by default. Test carefully before enabling LIVE trading.")
 with st.sidebar:
     st.header("⚙️ Trade Settings")
