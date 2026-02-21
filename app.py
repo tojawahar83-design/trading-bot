@@ -192,7 +192,7 @@ def get_global_trend():
             continue
     return "BULL" if bullish >= bearish else "BEAR"
 
-def fetch_news_sentiment(query="NIFTY OR BANKNIFTY", max_news=5):
+def fetch_news_sentiment(query="SENSEX", max_news=5):
     try:
         api_key = st.secrets.get("NEWSAPI_KEY", "")
     except:
@@ -328,7 +328,7 @@ except:
     API_SECRET = ""
 
 # Allow UI input as fallback
-with st.expander("🔑 API Credentials (if not in secrets.toml)"):
+with st.expander("🔑 API Credentials (J if not in secrets.toml)"):
     api_key_input = st.text_input("API Key", value=API_KEY, type="password", key="api_key_input")
     api_secret_input = st.text_input("API Secret", value=API_SECRET, type="password", key="api_secret_input")
     if api_key_input:
@@ -349,7 +349,7 @@ if access_token_to_use:
         st.session_state.kite = kite
         st.success("✅ Auto-connected using saved Access Token!")
     except Exception as e:
-        st.warning(f"Saved token invalid/expired: {e}")
+        st.warning(f"Still Saved token invalid/expired: {e}")
         access_token_to_use = None
 
 # Request Token input (only if auto-login fails)
