@@ -193,7 +193,10 @@ def get_global_trend():
     return "BULL" if bullish >= bearish else "BEAR"
 
 def fetch_news_sentiment(query="NIFTY OR BANKNIFTY", max_news=5):
-    api_key = st.secrets.get("NEWSAPI_KEY", "")  # ✅ now reads from secrets
+    try:
+        api_key = st.secrets.get("NEWSAPI_KEY", "")
+    except:
+        api_key = os.environ.get("NEWSAPI_KEY", "")
     if not api_key:
         return 0
     url = f"https://newsapi.org/v2/everything?q={query}&sortBy=publishedAt&pageSize={max_news}&apiKey={api_key}"
@@ -316,9 +319,22 @@ with st.sidebar:
 st.markdown("---")
 st.subheader("Kite API")
 
-# --- Load from Streamlit Secrets ---
-API_KEY     = st.secrets.get("API_KEY", "")
-API_SECRET  = st.secrets.get("API_SECRET", "")
+# --- Load API credentials: try secrets first, fallback to UI input ---
+try:
+    API_KEY = st.secrets.get("API_KEY", "")
+    API_SECRET = st.secrets.get("API_SECRET", "")
+except:
+    API_KEY = ""
+    API_SECRET = ""
+
+# Allow UI input as fallback
+with st.expander("🔑 API Credentials (if not in secrets.toml)"):
+    api_key_input = st.text_input("API Key", value=API_KEY, type="password", key="api_key_input")
+    api_secret_input = st.text_input("API Secret", value=API_SECRET, type="password", key="api_secret_input")
+    if api_key_input:
+        API_KEY = api_key_input
+    if api_secret_input:
+        API_SECRET = api_secret_input
 
 # Try to load saved token from file (if any)
 token_data = load_token_file()
