@@ -198,21 +198,31 @@ def fetch_news_sentiment(query="SENSEX", max_news=5):
     except:
         api_key = os.environ.get("NEWSAPI_KEY", "")
     if not api_key:
-        return 0
+        return 0, []
     url = f"https://newsapi.org/v2/everything?q={query}&sortBy=publishedAt&pageSize={max_news}&apiKey={api_key}"
     try:
         response = requests.get(url).json()
         articles = response.get("articles", [])
         if not articles:
-            return 0
+            return 0, []
         scores = []
+        out_articles = []
         for art in articles:
             title = art.get("title", "")
             score = analyzer.polarity_scores(title)["compound"]
             scores.append(score)
-        return sum(scores) / len(scores) if scores else 0
+            out_articles.append({
+                "title": title,
+                "description": art.get("description", ""),
+                "url": art.get("url", ""),
+                "source": art.get("source", {}).get("name", ""),
+                "publishedAt": art.get("publishedAt", ""),
+                "score": score,
+            })
+        avg = sum(scores) / len(scores) if scores else 0
+        return avg, out_articles
     except:
-        return 0
+        return 0, []
 
 # ------------------- Candlestick -------------------
 def detect_candlestick_patterns(df):
@@ -242,7 +252,7 @@ def underlying_signal(df):
     bull_global = global_trend == "BULL"
     bear_global = global_trend == "BEAR"
 
-    news_score = fetch_news_sentiment()
+    news_score, news_articles = fetch_news_sentiment()
     bull_news = news_score > 0.1
     bear_news = news_score < -0.1
 
@@ -260,6 +270,7 @@ def underlying_signal(df):
         "rsi": rsi14.iloc[-1],
         "macd_hist": macd_hist.iloc[-1],
         "news_score": news_score,
+        "news_articles": news_articles,
         "global_trend": global_trend,
     }
     return signal, meta
@@ -415,9 +426,29 @@ try:
             try:
                 signal, meta = underlying_signal(df)
                 st.subheader(f"Signal: {signal}")
-                st.json(meta)
+                # show meta except the full articles list (we'll render articles separately)
+                meta_shallow = {k: v for k, v in meta.items() if k != 'news_articles'}
+                st.json(meta_shallow)
                 st.markdown(f"**Global Trend:** {meta.get('global_trend', 'N/A')}")
-                st.markdown(f"**News Sentiment Score:** {meta.get('news_score', 0):.2f}")
+
+                # News Sentiment panel with collapsed articles (score shown in title)
+                with st.expander(f"News Sentiment Score: {meta.get('news_score', 0):+.2f}"):
+                    st.metric("Score", f"{meta.get('news_score', 0):.2f}")
+                    articles = meta.get('news_articles', []) or []
+                    if articles:
+                        for art in articles:
+                            title_short = (art.get('title') or '')[:120]
+                            with st.expander(f"{art.get('score', 0):+.2f} — {title_short}"):
+                                if art.get('description'):
+                                    st.write(art.get('description'))
+                                if art.get('source'):
+                                    st.markdown(f"**Source:** {art.get('source')}")
+                                if art.get('publishedAt'):
+                                    st.markdown(f"**Published:** {art.get('publishedAt')}")
+                                if art.get('url'):
+                                    st.markdown(f"[Read more]({art.get('url')})")
+                    else:
+                        st.write("No news articles available or API key missing.")
 
                 patterns = detect_candlestick_patterns(df)
                 if patterns:
